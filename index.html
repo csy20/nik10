@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        #chat-log::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-log::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #chat-log::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        #chat-log::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center h-screen">
+
+    <div class="w-full max-w-2xl h-full md:h-[90vh] flex flex-col bg-white dark:bg-gray-800 shadow-2xl rounded-xl">
+        <!-- Header -->
+        <header class="bg-indigo-600 dark:bg-indigo-700 text-white p-4 rounded-t-xl flex items-center shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M17 20v-4h-2v4"/><path d="M15 12V8h4v4"/><path d="M9 20v-4H7v4"/></svg>
+            <h1 class="text-xl font-bold">Gemini Chatbot</h1>
+        </header>
+
+        <!-- Chat Log -->
+        <main id="chat-log" class="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-700">
+            <!-- Example Bot Message -->
+            <div class="flex items-start gap-3 mb-4">
+                <div class="bg-indigo-500 text-white p-2 rounded-full flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M17 20v-4h-2v4"/><path d="M15 12V8h4v4"/><path d="M9 20v-4H7v4"/></svg>
+                </div>
+                <div class="bg-white dark:bg-gray-600 p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-800 dark:text-gray-200">Hello! I'm a chatbot powered by Gemini. How can I help you today?</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <footer class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600 rounded-b-xl">
+            <div class="flex items-center">
+                <input type="text" id="user-input" placeholder="Type your message..." class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white">
+                <button id="send-button" class="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        // --- API Configuration ---
+        // IMPORTANT: The API key provided by the user is used here.
+        const apiKey = "AIzaSyAONiBoc9W-hwqilnWeKY1uvvMWz5EQSiI";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        let chatHistory = [];
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        /**
+         * Appends a message to the chat log UI.
+         * @param {string} message - The text content of the message.
+         * @param {string} sender - 'user' or 'bot'.
+         */
+        function appendMessage(message, sender) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'mb-4', 'items-start', 'gap-3');
+
+            if (sender === 'user') {
+                messageWrapper.classList.add('justify-end');
+                messageWrapper.innerHTML = `
+                    <div class="bg-indigo-500 text-white p-3 rounded-lg shadow-sm max-w-xs md:max-w-md">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <div class="bg-gray-300 dark:bg-gray-600 p-2 rounded-full flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    </div>
+                `;
+            } else {
+                messageWrapper.classList.add('justify-start');
+                messageWrapper.innerHTML = `
+                    <div class="bg-indigo-500 text-white p-2 rounded-full flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M17 20v-4h-2v4"/><path d="M15 12V8h4v4"/><path d="M9 20v-4H7v4"/></svg>
+                    </div>
+                    <div class="bg-white dark:bg-gray-600 p-3 rounded-lg shadow-sm max-w-xs md:max-w-md">
+                        <p class="text-sm text-gray-800 dark:text-gray-200">${message}</p>
+                    </div>
+                `;
+            }
+
+            chatLog.appendChild(messageWrapper);
+            // Scroll to the bottom of the chat log
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        /**
+         * Shows or hides the bot's typing indicator.
+         * @param {boolean} show - True to show, false to hide.
+         */
+        function showTypingIndicator(show) {
+            let typingIndicator = document.getElementById('typing-indicator');
+            if (show) {
+                if (!typingIndicator) {
+                    const indicatorWrapper = document.createElement('div');
+                    indicatorWrapper.id = 'typing-indicator';
+                    indicatorWrapper.classList.add('flex', 'items-start', 'gap-3', 'mb-4');
+                    indicatorWrapper.innerHTML = `
+                         <div class="bg-indigo-500 text-white p-2 rounded-full flex-shrink-0">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="12" width="16" height="8" rx="2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M17 20v-4h-2v4"/><path d="M15 12V8h4v4"/><path d="M9 20v-4H7v4"/></svg>
+                        </div>
+                        <div class="bg-white dark:bg-gray-600 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-center space-x-1">
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                            </div>
+                        </div>
+                    `;
+                    chatLog.appendChild(indicatorWrapper);
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                }
+            } else {
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+        }
+
+        /**
+         * Handles sending a message from the user input.
+         */
+        async function sendMessage() {
+            const messageText = userInput.value.trim();
+            if (messageText === '') return;
+
+            // 1. Display user's message
+            appendMessage(messageText, 'user');
+            
+            // 2. Add user message to history for the API call
+            chatHistory.push({ role: "user", parts: [{ text: messageText }] });
+
+            // 3. Clear the input field
+            userInput.value = '';
+
+            // 4. Show typing indicator
+            showTypingIndicator(true);
+
+            try {
+                // 5. Call the Gemini API
+                const payload = { contents: chatHistory };
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                // 6. Hide typing indicator
+                showTypingIndicator(false);
+                
+                // 7. Process and display the bot's response
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    
+                    const botResponse = result.candidates[0].content.parts[0].text;
+                    appendMessage(botResponse, 'bot');
+                    
+                    // 8. Add bot response to history
+                    chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
+
+                } else {
+                    // Handle cases where the response structure is unexpected
+                    appendMessage("I'm sorry, I couldn't generate a response. The API response was not in the expected format.", 'bot');
+                }
+
+            } catch (error) {
+                // 9. Handle errors
+                showTypingIndicator(false);
+                console.error("Error calling Gemini API:", error);
+                const errorMessage = `Sorry, something went wrong. Please check the console for details. (Error: ${error.message})`
+                appendMessage(errorMessage, 'bot');
+            }
+        }
+    </script>
+</body>
+</html>
